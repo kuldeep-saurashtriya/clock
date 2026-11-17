@@ -48,6 +48,8 @@ fun AlarmEditSheet(
     var vibrate by rememberSaveable(initial.id) { mutableStateOf(initial.vibrate) }
     var soundUri by rememberSaveable(initial.id) { mutableStateOf(initial.soundUri) }
 
+    var showSoundSourceDialog by remember { mutableStateOf(false) }
+
     val ringtonePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val picked: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -56,7 +58,17 @@ fun AlarmEditSheet(
                 @Suppress("DEPRECATION")
                 result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
             }
-            soundUri = picked?.toString() ?: SILENT
+            val persisted = CustomSoundStorage.persistIfExternal(context, picked)
+            soundUri = persisted?.toString() ?: SILENT
+        }
+    }
+
+    val audioFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked: Uri? ->
+        if (picked != null) {
+            val persisted = CustomSoundStorage.persistIfExternal(context, picked)
+            if (persisted != null) {
+                soundUri = persisted.toString()
+            }
         }
     }
 
@@ -64,8 +76,7 @@ fun AlarmEditSheet(
         when {
             soundUri == null -> "Default"
             soundUri == SILENT -> "Silent"
-            else -> runCatching { RingtoneManager.getRingtone(context, Uri.parse(soundUri))?.getTitle(context) }
-                .getOrNull() ?: "Default"
+            else -> CustomSoundStorage.getSoundTitle(context, soundUri)
         }
     }
 
@@ -96,14 +107,7 @@ fun AlarmEditSheet(
             onToggleDay = { day -> days = if (day in days) days - day else days + day },
             onVibrateChange = { vibrate = it },
             onSoundClick = {
-                ringtonePicker.launch(
-                    Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
-                        .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                        .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Alarm sound")
-                        .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                        .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                        .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, soundUri?.takeIf { it != SILENT }?.let(Uri::parse))
-                )
+                showSoundSourceDialog = true
             },
             onCancel = {
                 scope.launch {
@@ -137,5 +141,36 @@ fun AlarmEditSheet(
                 }
             },
         )
+        if (showSoundSourceDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showSoundSourceDialog = false },
+                title = { androidx.compose.material3.Text("Choose sound source") },
+                text = { androidx.compose.material3.Text("Select a built-in system alarm tone or pick an audio file from your storage.") },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        showSoundSourceDialog = false
+                        audioFilePicker.launch(arrayOf("audio/*"))
+                    }) {
+                        androidx.compose.material3.Text("Audio file")
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        showSoundSourceDialog = false
+                        val existing = soundUri?.takeIf { it != SILENT && !it.startsWith("file://") }?.let(Uri::parse)
+                        ringtonePicker.launch(
+                            Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Alarm sound")
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existing)
+                        )
+                    }) {
+                        androidx.compose.material3.Text("System ringtones")
+                    }
+                }
+            )
+        }
     }
 }

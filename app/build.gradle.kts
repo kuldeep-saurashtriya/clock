@@ -11,7 +11,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.expressiveclock"
+        applicationId = "app.expressiveclock.custom"
         minSdk = 26
         targetSdk = 36
         versionCode = 7

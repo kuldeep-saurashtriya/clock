@@ -135,14 +135,17 @@ class AlarmService : Service() {
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 )
-                setDataSource(this@AlarmService, uri)
+                if (uri.scheme == "file" && uri.path != null) {
+                    setDataSource(uri.path!!)
+                } else {
+                    setDataSource(this@AlarmService, uri)
+                }
                 isLooping = true
                 prepare()
                 start()
             }
-        }.onFailure {
-            // A ringtone the user picked can be deleted, or live on an unmounted SD card. Silence
-            // is not an acceptable alarm, so fall back rather than let the exception kill it.
+        }.onFailure { e ->
+            android.util.Log.e("AlarmService", "Failed to play $uri: ${e.message}", e)
             runCatching {
                 player = MediaPlayer.create(this, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
                     ?.apply { isLooping = true; start() }
