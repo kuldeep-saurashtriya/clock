@@ -1,16 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--
-      Nothing here reaches the network, and there is no INTERNET permission: everything the app
-      shows it computes locally from the platform's clock and tz database.
-
-      USE_EXACT_ALARM rather than a runtime prompt. It is install-granted, and it is granted
-      specifically to apps whose *core function* is an alarm clock or calendar, which this one is.
-      SCHEDULE_EXACT_ALARM is declared alongside it capped at API 32, the last release before
-      USE_EXACT_ALARM existed; above that the capped one is inert and the app never asks for
-      anything.
-    -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission
         android:name="android.permission.SCHEDULE_EXACT_ALARM"
@@ -28,14 +18,41 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Puts the dismiss screen in front of a locked phone. Degrades to a heads-up banner. -->
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Added for live weather data on the home-screen widget -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- System overlay permission for active Timer/Stopwatch Dynamic Island capsule. -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Commented out so UPI / Google Pay does not flag sideloaded overlay permissions -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> -->
 
     <!-- Battery optimization exemption for background timers and alarms. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Required on Android 11+ so the widget can detect and launch native Weather & Calendar apps -->
+    <queries>
+        <package android:name="com.coloros.weather2" />
+        <package android:name="com.oplus.weather" />
+        <package android:name="com.oneplus.weather" />
+        <package android:name="net.oneplus.weather" />
+        <package android:name="com.coloros.weather" />
+        <package android:name="com.google.android.apps.weather" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_WEATHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_CALENDAR" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SHOW_ALARMS" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
 
     <application
         android:name=".ClockApplication"
@@ -96,12 +113,6 @@
             </intent-filter>
         </activity-alias>
 
-        <!--
-          The ringing screen. Its own task, excluded from recents: it is a modal interruption, not
-          a place you navigate back to, and finding a dead alarm screen in the switcher an hour
-          later is confusing. showWhenLocked + turnScreenOn are set in code as well, because the
-          manifest attributes alone do not turn a dark display on.
-        -->
         <activity
             android:name=".alarm.AlarmRingActivity"
             android:exported="false"
@@ -117,6 +128,8 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- Commented out so Google Pay / UPI apps do not block transactions due to a sideloaded AccessibilityService -->
+
         <service
             android:name=".overlay.OverlayAccessibilityService"
             android:exported="false"
@@ -129,16 +142,12 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+
         <receiver
             android:name=".alarm.BootReceiver"
             android:exported="false"
             android:directBootAware="true">
             <intent-filter>
-                <!--
-                  All mean the same thing to this app: every AlarmManager entry it owns is now
-                  gone or wrong. LOCKED_BOOT_COMPLETED as well as BOOT_COMPLETED so an alarm can be
-                  rearmed before the user has unlocked after a reboot.
-                -->
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.TIME_SET" />
@@ -153,16 +162,6 @@
 
         <receiver android:name=".alarm.ClockActionReceiver" android:exported="false" />
 
-        <!--
-          The clock widget. exported="false" is correct: every one of these broadcasts comes from
-          system_server, and AMS short-circuits the export check for its own pid. The
-          APPWIDGET_UPDATE filter is NOT optional, because AppWidgetServiceImpl discovers providers
-          by querying for exactly that intent.
-
-          The four extra actions are the only things that can invalidate the drawing. All are on
-          the implicit-broadcast exception list, so they may be declared here; ACTION_DATE_CHANGED
-          and ACTION_CONFIGURATION_CHANGED are not, and are handled from the app instead.
-        -->
         <receiver
             android:name=".widget.ClockWidgetProvider"
             android:label="@string/analog_widget_label"
@@ -197,15 +196,8 @@
                 android:resource="@xml/digital_clock_widget_info" />
         </receiver>
 
-        <!-- Receives the launcher's pin callback, which carries the new widget's id. -->
         <receiver android:name=".widget.WidgetPinnedReceiver" android:exported="false" />
 
-        <!--
-          No launchMode, no taskAffinity, no noHistory, no dialog theme. See the class docs. The
-          launcher starts this inside its OWN task with no NEW_TASK flag; anything that forces a
-          separate task returns RESULT_CANCELED instantly and the widget is deleted before the user
-          sees it.
-        -->
         <activity
             android:name=".widget.ClockWidgetConfigActivity"
             android:exported="true"
@@ -215,6 +207,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
+
         <service
             android:name=".quicksettings.AlarmTileService"
             android:exported="true"
