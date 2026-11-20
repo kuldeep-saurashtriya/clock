@@ -366,20 +366,24 @@ object DigitalClockWidgetRenderer {
             val rightTextSize = (h * 0.19f).coerceIn(17.5f * density, 23f * density)
             datePaint.textSize = rightTextSize
 
-            // Zero out inner digit & date padding
+            // Zero out inner digit & date padding and lock single-line rendering
             listOf(R.id.live_date, R.id.live_hours, R.id.live_minutes, R.id.live_colon).forEach {
                 views.setViewPadding(it, 0, 0, 0, 0)
             }
+            listOf(R.id.live_hours, R.id.live_minutes, R.id.live_colon).forEach {
+                views.setBoolean(it, "setSingleLine", true)
+            }
 
-            // 1. Time visual position (exact `56f` alignment with ZERO right padding on `live_row_slot` so minutes never clip)
+            // 1. Time visual position: with `android:gravity="start"` in the XML wrapper,
+            //    `live_row` starts flush at the left border (`x = 0`) with ZERO right padding
+            //    so the box never squeezes or clips any digit across all 1,440 minutes!
             val timeBounds = android.graphics.Rect()
             timePaint.getTextBounds("10:35", 0, 5, timeBounds)
             val visualTimeCenterOffset = (timeBounds.top + timeBounds.bottom) / 2f
             val timeBaseline = (h / 2f) - visualTimeCenterOffset
             val timeTop = (timeBaseline + timePaint.fontMetrics.ascent).roundToInt().coerceAtLeast(0)
-            val actualTimeWidth = timePaint.measureText("10:35")
-            val rightPadInsideRow = (w - actualTimeWidth + (56f * density)).roundToInt().coerceAtLeast(0)
-            views.setViewPadding(R.id.live_row, 0, 0, rightPadInsideRow, 0)
+
+            views.setViewPadding(R.id.live_row, 0, 0, 0, 0)
             views.setViewPadding(R.id.live_row_slot, 0, timeTop, 0, 0)
 
             // 2. Date & Day visual position (exact locked alignment)
