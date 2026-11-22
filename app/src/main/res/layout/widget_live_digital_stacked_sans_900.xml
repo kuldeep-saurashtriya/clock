@@ -8,18 +8,18 @@
     </FrameLayout>
     <FrameLayout android:id="@+id/live_hour_slot" android:layout_width="match_parent" android:layout_height="match_parent">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal">
-            <TextClock android:id="@+id/live_hours" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif" android:textFontWeight="900" android:fontFeatureSettings="" android:includeFontPadding="false" android:maxLines="1" android:gravity="center"/>
+            <TextClock android:fontFamily="sys-sans-en" android:id="@+id/live_hours" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textFontWeight="900" android:fontFeatureSettings="" android:includeFontPadding="false" android:maxLines="1" android:gravity="center"/>
         </LinearLayout>
     </FrameLayout>
     <FrameLayout android:id="@+id/live_minute_slot" android:layout_width="match_parent" android:layout_height="match_parent">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal">
-            <TextClock android:id="@+id/live_minutes" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif" android:textFontWeight="900" android:fontFeatureSettings="" android:includeFontPadding="false" android:maxLines="1" android:gravity="center"/>
+            <TextClock android:fontFamily="sys-sans-en" android:id="@+id/live_minutes" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textFontWeight="900" android:fontFeatureSettings="" android:includeFontPadding="false" android:maxLines="1" android:gravity="center"/>
         </LinearLayout>
     </FrameLayout>
     <FrameLayout android:id="@+id/live_date_slot" android:layout_width="match_parent" android:layout_height="match_parent">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal">
-            <TextClock android:id="@+id/live_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif" android:textFontWeight="900" android:fontFeatureSettings="" android:includeFontPadding="false" android:maxLines="1" android:gravity="center"/>
+            <TextClock android:fontFamily="sys-sans-en" android:id="@+id/live_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textFontWeight="900" android:fontFeatureSettings="" android:includeFontPadding="false" android:maxLines="1" android:gravity="center"/>
         </LinearLayout>
     </FrameLayout>
-    <TextView android:id="@+id/live_colon" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <TextView android:fontFamily="sys-sans-en" android:id="@+id/live_colon" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
 </FrameLayout>

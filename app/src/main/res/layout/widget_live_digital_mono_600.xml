@@ -17,7 +17,7 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal"/>
     </FrameLayout>
     <FrameLayout android:id="@+id/live_date_slot" android:layout_width="match_parent" android:layout_height="match_parent">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="end">
             <TextClock android:id="@+id/live_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textFontWeight="600" android:fontFamily="monospace" android:fontFeatureSettings="" android:includeFontPadding="false" android:maxLines="1" android:gravity="center"/>
         </LinearLayout>
     </FrameLayout>

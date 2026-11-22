@@ -30,6 +30,7 @@ internal object NativeWidgetFonts {
         val isFallback: Boolean get() = requested in listOf(WidgetFontFamily.GOOGLE_SANS, WidgetFontFamily.GOOGLE_SANS_NORMAL) && kind != NativeFontKind.GOOGLE_FLEX
         val description: String get() = when (kind) {
             NativeFontKind.CONDENSED -> "Uses this device’s condensed sans font. Your Condensed style preference is preserved."
+            NativeFontKind.SANS -> "Uses this device’s system sans font (OnePlus / OPlus Sans)."
             else -> "Uses this device’s sans font. Your ${requested.label} style preference is preserved."
         }
 
@@ -48,6 +49,12 @@ internal object NativeWidgetFonts {
             val root = LayoutInflater.from(restricted).inflate(layout, null)
             fun paint(id: Int): Paint {
                 val view = root.findViewById<TextClock>(id)
+                if (kind == NativeFontKind.SANS) {
+                    val sysSans = Typeface.create("sys-sans-en", Typeface.NORMAL)
+                    if (sysSans != Typeface.DEFAULT) {
+                        view.typeface = sysSans
+                    }
+                }
                 variation?.let { view.setFontVariationSettings(it) }
                 return Paint(view.paint)
             }
@@ -56,8 +63,12 @@ internal object NativeWidgetFonts {
     }
 
     fun resolve(context: Context, requested: WidgetFontFamily, weight: DigitalTypefaceWeight): Profile {
-        val googleRequested = requested == WidgetFontFamily.GOOGLE_SANS || requested == WidgetFontFamily.GOOGLE_SANS_NORMAL
-        val width = if (requested == WidgetFontFamily.GOOGLE_SANS) 25 else 100
+        // Use OxygenOS system font (`sys-sans-en` / OPlusSansEn) when GOOGLE_SANS_NORMAL is selected
+        if (requested == WidgetFontFamily.GOOGLE_SANS_NORMAL) {
+            return Profile(NativeFontKind.SANS, requested, weight)
+        }
+        val googleRequested = requested == WidgetFontFamily.GOOGLE_SANS
+        val width = 25
         val key = "$width:${weight.weightInt}:${context.resources.configuration}"
         val exact = googleRequested && verified.getOrPut(key) {
             try { verify(context, width, weight.weightInt) } catch (error: RuntimeException) {
@@ -84,8 +95,8 @@ internal object NativeWidgetFonts {
         val expected = paint(bundled)
         val symbols = DateFormatSymbols.getInstance()
         val sample = ("0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ, /.-" +
-            symbols.shortMonths.joinToString("") + symbols.shortWeekdays.joinToString("") +
-            (0..59).joinToString("") { String.format(Locale.getDefault(), "%02d", it) })
+                symbols.shortMonths.joinToString("") + symbols.shortWeekdays.joinToString("") +
+                (0..59).joinToString("") { String.format(Locale.getDefault(), "%02d", it) })
             .uppercase(Locale.getDefault())
         if (abs(actual.measureText(sample) - expected.measureText(sample)) > .01f) return false
         fun outline(paint: Paint): FloatArray = Path().let {
