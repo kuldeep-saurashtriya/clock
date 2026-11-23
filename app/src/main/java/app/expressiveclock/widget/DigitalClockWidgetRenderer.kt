@@ -389,17 +389,50 @@ object DigitalClockWidgetRenderer {
                 views.setViewPadding(R.id.live_colon, 0, 0, 0, colonLiftPx)
             }
 
+            // Compute exact width of the time block (`HH:MM`) so the right column never overlaps it
+            val estimatedTimeWidth = (pair * 2f + colon + (6f * density)).roundToInt()
+            val safeRightStartPx = (estimatedTimeWidth + (10f * density)).roundToInt()
+                .coerceAtMost((w * 0.60f).roundToInt())
+            val availableRightWidth = (w - safeRightStartPx).coerceAtLeast((w * 0.38f).roundToInt()).toFloat()
+
             val centerLine = h * 0.525f
             val weatherGap = 8f * density
             val dateTop = (centerLine + (15f * density)).roundToInt().coerceAtLeast(0)
-            views.setViewPadding(R.id.live_date_slot, 0, dateTop, 0, 0)
-            views.setInt(R.id.live_date, "setGravity", Gravity.END)
-            views.setBoolean(R.id.live_date, "setSingleLine", true)
-
             val dateBaseline = dateTop - datePaint.fontMetrics.ascent
             val timeTop = (dateBaseline + timePaint.fontMetrics.ascent).roundToInt().coerceAtLeast(0)
             views.setViewPadding(R.id.live_row, 0, 0, 0, 0)
             views.setViewPadding(R.id.live_row_slot, 0, timeTop, 0, 0)
+
+            // Constrain `live_date_slot` strictly to `safeRightStartPx..w` and allow 2 stacked lines
+            // for calendar event titles so nothing is ever cut off or collides with `12:00`
+            val isEventPreview = dateOverride != null
+            val dateDisplaySize = if (isEventPreview) {
+                val measured = datePaint.measureText(dateOverride)
+                if (measured <= availableRightWidth) {
+                    rightTextSize * 0.85f
+                } else {
+                    // Auto-scale slightly and wrap onto 2 lines inside the bounded right column
+                    (rightTextSize * 0.72f).coerceAtLeast(12.5f * density)
+                }
+            } else {
+                rightTextSize
+            }
+
+            views.setViewPadding(R.id.live_date_slot, 0, dateTop, 0, 0)
+            views.setInt(R.id.live_date, "setGravity", Gravity.END)
+            views.setBoolean(R.id.live_date, "setSingleLine", !isEventPreview)
+            views.setInt(R.id.live_date, "setMaxLines", if (isEventPreview) 2 else 1)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                views.setViewLayoutMargin(
+                    R.id.live_date_slot,
+                    RemoteViews.MARGIN_START,
+                    if (isEventPreview) safeRightStartPx.toFloat() else 0f,
+                    TypedValue.COMPLEX_UNIT_PX,
+                )
+            } else if (isEventPreview) {
+                views.setViewPadding(R.id.live_date_slot, safeRightStartPx, dateTop, 0, 0)
+            }
 
             val rightZoneStartX = (w * 0.48f).roundToInt()
             val splitY = ((centerLine + dateTop) / 2f).roundToInt().coerceAtLeast(1)
@@ -448,7 +481,6 @@ object DigitalClockWidgetRenderer {
             style(R.id.live_hours, size, hourColorInt)
             style(R.id.live_minutes, size, minuteColorInt)
             style(R.id.live_colon, size, colonColorInt)
-            val dateDisplaySize = if (dateOverride != null) (rightTextSize * 0.85f) else rightTextSize
             style(R.id.live_date, dateDisplaySize, dateColorInt)
 
             if (weatherText.isNotBlank()) {
@@ -596,10 +628,8 @@ object DigitalClockWidgetRenderer {
             WeatherIconKind.LOADING -> {
                 val halfW = iconSize * 0.32f
                 val halfH = iconSize * 0.40f
-                // Top and bottom caps
                 canvas.drawLine(cx - halfW * 1.15f, cy - halfH, cx + halfW * 1.15f, cy - halfH, strokePaint)
                 canvas.drawLine(cx - halfW * 1.15f, cy + halfH, cx + halfW * 1.15f, cy + halfH, strokePaint)
-                // Hourglass frame
                 val frame = Path().apply {
                     moveTo(cx - halfW, cy - halfH)
                     lineTo(cx + halfW, cy - halfH)
@@ -610,7 +640,6 @@ object DigitalClockWidgetRenderer {
                     close()
                 }
                 canvas.drawPath(frame, strokePaint)
-                // Filled bottom sand
                 val sand = Path().apply {
                     moveTo(cx - halfW * 0.68f, cy + halfH)
                     lineTo(cx + halfW * 0.68f, cy + halfH)
